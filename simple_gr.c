@@ -1,6 +1,6 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 int main() {
 
   const unsigned int nx = 64;
@@ -43,27 +43,41 @@ int main() {
   double *T = calloc((ny + 1) * (nx + 1), sizeof(double));
   double *T1 = calloc((ny + 1) * (nx + 1), sizeof(double));
   while (1) {
-    // x direction 
-    for (unsigned int j = 1; j < ny ; ++j)
-      for (unsigned int i = 1; i < nx -1; ++i) {
+    // x direction
+    for (unsigned int j = 1; j < ny; ++j)
+      for (unsigned int i = 1; i < nx - 1; ++i) {
 
-        double vt = 0.5 * (vy[j - 1 + i * (nx + 1)] + vy[j - 1 + (i + 1) * (nx + 1)]);
+        double vt =
+            0.5 * (vy[j - 1 + i * (nx + 1)] + vy[j - 1 + (i + 1) * (nx + 1)]);
         double vb = 0.5 * (vy[j + i * (nx + 1)] + vy[j + (i + 1) * (nx + 1)]);
 
-	double ut = 0.5 * (vx[j - 1 + i * nx] + vx[j + i * nx]);
+        double ut = 0.5 * (vx[j - 1 + i * nx] + vx[j + i * nx]);
         double ub = 0.5 * (vx[j + 1 + i * nx] + vx[j + i * nx]);
         double ur = 0.5 * (vx[j + i * nx] + vx[j + (i + 1) * nx]);
         double ul = 0.5 * (vx[j + i * nx] + vx[j + (i - 1)] * nx);
 
-        double a = -(ur * ur - ul * ul) * i_dx - (ub * vb - ut * vt) * i_dy;
-        double b = (vx[j + (i + 1) * nx] - 2 * vx[j + i * nx] + vx[j + (i - 1) * nx]) * i_dx2;
-        double c = (vx[j + 1 + i*nx] - 2 * vx[j +  i*nx] + vx[j - 1 +  i*nx]) * i_dy2;
-
-        double AA = -a + sqrt(i_gr) * (b + c);
-        vx1[j + i*nx] = vx[j + i*nx] + dt * (AA - (p[j + (i + 1)*(nx+1)] - p[j+  i*nx]) * i_dx);
       }
-    for (unsigned int j = 1;
-	  
+    
+    // y direction
+
+    for (unsigned int j = 1; j < ny - 1; ++j)
+      for (unsigned int i = 1; i < nx; ++i) {
+
+        double ur = 0.5 * (vx[j + i * nx] + vx[j + 1 + i * nx]);
+        double ul = 0.5 * (vx[j + (i - 1) * nx] + vx[j + 1 + (i-1) * nx]);
+        double vr = 0.5 * (vy[j + i*(nx+1) + 1] + vy[j+ i*(nx+1)]);
+	double vl =0.5 * (vy[j + (i - 1)*(nx+1)] + vy[j + i*(nx+1)]) ;
+	double vt =0.5 * (vy[j - 1 + i*(nx+1)] + vy[j + i*(nx+1)]);
+	double vb =   0.5 * (vy[j + 1 + i*(nx+1)] + vy[j + i*(nx+1)]);
+	
+	double a=-(vb*vb-vt*vt)*i_dy-(vr*ur-vl*ul)*i_dx; //convettivo
+	double b=(vy[j + (i+1) * (nx+1)]-2*vy[j + i * (nx+1)]+vy[ j + (i-1) * (nx+1) ])*i_dx2; //diffusivo 1
+	double c=(vy[j+1+i*(nx+1)]-2*vy[j + i*(nx+1)]+vy[j-1+i*(nx+1)])*i_dy2; //diffusivo 2
+	double temp=-(T1[j+1+i*(nx+1)]+T1[j+i*(nx+1)])*0.5; //termine galleggiamento
+	double BB=-a-temp+sqrt(i_gr)*(b+c); //approssimo gr>>1 gr/re^2
+	vy1[j + i*(nx+1)]=vy[j + i*(nx+1)]+dt*(BB-(p[j+1+i*(nx+1)]-p[j + i*(nx+1)])*i_dy); //velocita vy al passo n+1
+      }
+
     break;
   }
 }
