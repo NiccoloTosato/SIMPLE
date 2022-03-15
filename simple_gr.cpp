@@ -2,7 +2,7 @@
 #include <cmath>
 #include <utility>
 #include <memory>
-
+#include <fstream>
 template <typename T=double,typename index_type=unsigned int>
 
 class Grid {
@@ -13,10 +13,20 @@ private:
   index_type ncols;
   
 public:
-  Grid(const std::size_t rows,const std::size_t cols) : data{new T[ rows* cols]},  nrows{ rows }, ncols{ cols} {}
+  Grid(const index_type rows,const index_type cols) : data{new T[ rows* cols]},  nrows{ rows }, ncols{ cols} {}
 
   T& operator()(index_type row, index_type col) {
     return data[row*ncols + col];
+  }
+
+  const T& operator()(index_type row, index_type col) const {
+    return data[row*ncols + col];
+  }
+  
+  void swap(Grid& a) {
+    //assume that 2 grid are compatible ! 
+    data.swap(a.data);
+    return ;
   }
 
 };
@@ -41,7 +51,8 @@ int main() {
   
   const double dt { 0.00005 };
   const double pr { 1 };
-  const double  gr { 10 };
+  const double i_pr { 1/pr };
+  const double gr { 10 };
   const double i_gr { 1 / gr };
   const double rel { 1 };
   
@@ -63,7 +74,8 @@ int main() {
   
   Grid<double,unsigned short int> T{ny+1,nx+1};
   Grid<double,unsigned short int> T1{ny+1,nx+1};
-  while(true) {
+  std::size_t iteration=0;
+  while(iteration < 20) {
     //componente x velocità
     for( std::size_t j=1; j < ny; ++j) //new row
       for( std::size_t i=1; i < nx-1; ++i) { //next col
@@ -134,9 +146,106 @@ int main() {
     const double b=dy2*0.5/(dy2+dx2);
     const double c=0.5/(dx2+dy2);
 
-    //
+    //start poisson solver, now
+    std::size_t it=0;
+    while(it<200) {
+      it++;
+      p2.swap(p1);
+
+      //laplace operator
+      for (std::size_t j=1;j<ny;++j)
+	for (std::size_t i=1;i<ny;++i) {
+	  double al=a*(p1(j+1,i)+p1(j-1,i))+b*(p1(j,i+1)+p1(j,i-1))-c*div(j,i);
+	  p1(j,i)=al*rel+(1-rel)*p1(j,i);
+	}
+      
+      //forziamo le condizioni al contorno
+      for(std::size_t i=0;i<ny+1;++i) {
+	p1(i,0)=p1(i,1); //parete sx
+	p1(i,nx)=p1(i,nx-1); //parete dx
+      }
+      
+      for(std::size_t i=0;i<nx+1;++i) {
+       	p1(0,i)=p1(1,i); //parete top
+       	p1(ny,i)=p1(ny-1,i); //parete bottom
+      }
+
+      //condizioni contorno agli spigoli
+      p1(0,0)=p1(1,1);
+      p1(0,nx)=p1(1,nx-1);
+      p1(ny,nx)=p1(ny-1,nx-1);
+      p1(ny,0)=p1(ny-1,1);
+
+      //TO DO: CHECK CONVERGENCE
+      
+    }
+
+
+    //correggere velocita x
+    for(std::size_t j=1;j<ny+1;++j)
+      for(std::size_t i=1;i<nx;++i) 
+	vx1(j,i)=vx1(j,i)-(p1(j,i+1)-p1(j,i))*i_dx*dt;
+
+    //correggere velocita y
+    for(std::size_t j=1;j<ny;++j)
+      for(std::size_t i=1;i<nx +1 ;++i) 
+	vy1(j,i)=vy1(j,i)-(p1(j+1,i)-p1(j,i))*i_dy*dt;
+
+    for(std::size_t j=1;j<ny;++j)
+      for(std::size_t i=1;i<nx;++i) {
+	
+	const double u=0.5*(vx1(j,i)+vx1(j,i-1));
+	const double v=0.5*(vy1(j,i)+vy1(j-1,i));
+
+	const double a=0.5*u*i_dx*(T(j,i+1)-T(j,i-1));
+	const double b=0.5*v*i_dy*(T(j+1,i)-T(j-1,i));
+      	const double c=sqrt(i_gr)*i_pr*((T(j,i+1)-2*T(j,i)+T(j,i-1))*i_dx2+(T(j+1,i)-2*T(j,i)+T(j-1,i))*i_dy2);
+	T1(j,i)=T(j,i)+dt*(-a-b+c);
+      }
+
+    //condizioni al contorno temperatura
+    for (std::size_t i=1;i<ny+1;++i) {
+      T1(i,0)=2*0-T1(i,1); //parete sx fredda
+      T1(i,nx)=2*1-T1(i,nx-1); //parete dx sorgente calda
+    }
+    for (std::size_t i=1;i<nx+1;++i) {
+      T1(0,i)=T1(1,i); //parete top adiabatica
+      T1(ny,i)=T1(ny-1,i); //parete bottom adiabatica
+    }
+
+    T.swap(T1);
+    vx.swap(vx1);
+    vy.swap(vy1);
+    for(std::size_t j=0;j<ny+1;++j)
+      for(std::size_t i=0;i<nx+1;++i){
+	p(j,i)=p1(j,i)+p(j,i);
+	p1(j,i)=0;
+      }
     
-    
-    break;
+    iteration++;
+   
   }
+  Grid<double,unsigned short int> vxs{ny,nx};
+  Grid<double,unsigned short int> vys{ny,nx};
+  for(std::size_t j=0;j<ny;++j)
+    for(std::size_t i=0;i<nx;++i) {
+      vys(j,i)=0.5*(vy1(j,i+1)+vy1(j+1,i+1));
+      vxs(j,i)=0.5*(vx1(j+1,i+1)+vx1(j+1,i));
+    }
+  
+  std::ofstream vx_file;
+  vx_file.open("vex.bin", std::ios::binary | std::ios::out);
+  vx_file.write((const char*)&vx(0,0), sizeof(double)*nx*ny);
+  vx_file.close();
+
+  std::ofstream vy_file;
+  vy_file.open("vey.bin", std::ios::binary | std::ios::out);
+  vy_file.write((const char*)&vy(0,0), sizeof(double)*nx*ny);
+  vy_file.close();
+
+  std::ofstream temp_file;
+  temp_file.open("temp.bin", std::ios::binary | std::ios::out);
+  temp_file.write((const char*)&T(0,0), sizeof(double)*nx*ny);
+  temp_file.close();
+
 }
