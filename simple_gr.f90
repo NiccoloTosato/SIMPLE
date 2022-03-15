@@ -23,7 +23,7 @@ gr=10;
 i_gr=1/gr;
 rel=1.97 !relaxation factor
 eps_p=1.0E-11 !precisione solutore poisson
-eps=1.0E-11 !criterio per convergenza
+eps=1.0E-10 !criterio per convergenza
 ALLOCATE(vx(1:ny+2,1:nx+1))
 ALLOCATE(vx1(1:ny+2,1:nx+1))
 ALLOCATE(vy(1:ny+1,1:nx+2))
@@ -63,7 +63,7 @@ DO i=2,nx
   b=(vx(j,i+1)-2*vx(j,i)+vx(j,i-1))*i_dx2 !diffusivo 1
   !b=(vy(j,i+1)-2*vy(j,i)+vy(j,i)-1)*i_dx2; !----ERRORE--------ERRORE--------ERRORE--------ERRORE--------ERRORE----
   c=(vx(j+1,i)-2*vx(j,i)+vx(j-1,i))*i_dy2 !diffusivo 2
-  AA=-a+i_re*(b+c)
+  AA=-a+sqrt(i_gr)*(b+c)
   vx1(j,i)=vx(j,i)+dt*(AA-(p(j,i+1)-p(j,i))*i_dx) !velocita vx al passo n+1    
  END DO 
 END DO 
