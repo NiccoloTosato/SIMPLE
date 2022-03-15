@@ -8,5 +8,5 @@ Feature:
 - Dirichlet and Neuman b.c are available. 
 - Temperature scalar field.
 
-Porting of old and ugly python code to cpp in order to add openMP + MPI support, irregular grid and better poisson solver.
+Porting of old and ugly fortran90 code to cpp in order to add openMP + MPI support, irregular grid and better poisson solver.
 
