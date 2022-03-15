@@ -53,9 +53,9 @@ int main() {
   const double dt { 0.00005 };
   const double pr { 1 };
   const double i_pr { 1/pr };
-  const double gr { 10 };
+  const double gr { 100 };
   const double i_gr { 1 / gr };
-  const double rel { 1 };
+  const double rel { 1.1 };
   
   const double eps_p { 1.0E-10 };
   const double eps { 1.0E-10 };
@@ -76,7 +76,7 @@ int main() {
   Grid<double,unsigned short int> T{ny+1,nx+1};
   Grid<double,unsigned short int> T1{ny+1,nx+1};
   std::size_t iteration=0;
-  while(iteration < 14000) {
+  while(iteration < 2500) {
 
     //componente x velocità
     for( std::size_t j=1; j < ny; ++j)  //new row 
@@ -123,7 +123,7 @@ int main() {
     
     //parete top e bottom noslip
     for(std::size_t i=0; i < nx ; ++i) {
-      vx1(0,i)=2*1-vx1(1,i);
+      vx1(0,i)=2*0-vx1(1,i);
       vx1(ny,i)=2*0-vx1(ny-1,i);
     }
     
@@ -141,7 +141,6 @@ int main() {
     }
 
     //calcolo la divergenza, sarà source di poisson 
-
     for(std::size_t j=1; j< ny;++j)
       for(std::size_t i=1; i< nx;++i)
 	div(j,i)=(+(vx1(j,i)-vx1(j,i-1))*i_dx+(vy1(j,i)-vy1(j-1,i))*i_dy)*dx2*dy2/dt;
@@ -153,7 +152,7 @@ int main() {
 
     //start poisson solver, now
     std::size_t it=0;
-    while(it<500) {
+    while(it<1500) {
       it++;
       p2.swap(p1);
 
@@ -210,7 +209,7 @@ int main() {
 
     //condizioni al contorno temperatura
     for (std::size_t i=1;i<ny+1;++i) {
-      T1(i,0)=2*0-T1(i,1); //parete sx fredda
+      T1(i,0)=2*1-T1(i,1); //parete sx fredda
       T1(i,nx)=2*0-T1(i,nx-1); //parete dx sorgente calda
     }
     for (std::size_t i=1;i<nx+1;++i) {
@@ -230,6 +229,7 @@ int main() {
     iteration++;
    
   }
+
   Grid<double,unsigned short int> vxs{ny,nx};
   Grid<double,unsigned short int> vys{ny,nx};
   for(std::size_t j=0;j<ny;++j)
