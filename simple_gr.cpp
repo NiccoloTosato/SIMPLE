@@ -99,27 +99,43 @@ int main() {
     }
 
     //condizioni al contorno vx
-    //impermeabilità
-    for(std::size_t i=1; i<ny; ++i) {
+    //parete left right impermeabilità
+    for(std::size_t i=0; i<ny+1; ++i) {
       vx1(i, 0)=0;
-      vx1(i, nx)=0;
+      vx1(i, nx-1)=0;
     }
     
     //parete top e bottom noslip
-    for(std::size_t i=0; i < nx +1; ++i) {
+    for(std::size_t i=0; i < nx ; ++i) {
       vx1(0,i)=2*0-vx1(1,i);
-      vx1(ny+1,i)=2*0-vx1(ny+1,i);
+      vx1(ny,i)=2*0-vx1(ny-1,i);
+    }
+    
+    //condizioni al contorno vy
+    //parete left right noslip
+    for(std::size_t i=0; i<ny;++i) {
+      vy1(i,0)=2*0-vy1(i,1);
+      vy1(i,nx)=2*0-vy1(i,nx-1);
     }
 
+    //parete top e bottom impermiabilità
+    for(std::size_t i=0; i< nx+1;++i) {
+      vy1(1,i)=0;
+      vy1(ny-1,i)=0;
+    }
 
+    //calcolo la divergenza, sarà source di poisson 
+    for(std::size_t j=1; j< ny;++j)
+      for(std::size_t i=1; i< nx;++i)
+	div(j,i)=(+(vx1(j,i)-vx1(j,i-1))*i_dx+(vy1(j,i)-vy1(j-1,i))*i_dy)*dx2*dy2/dt;
 
-    // //condizioni al contorno vy
-    // //parete left right noslip
-    // vy1(1:ny+1,1)=-vy1(1:ny+1,2);
-    // vy1(1:ny+1,nx+2)=-vy1(1:ny+1,nx+1);
-    // //parete top e bottom impermiabilità
-    // vy1(1,1:nx+2)=0;
-    // vy1(ny+1,1:nx+2)=0;
+    //prepare poisson solver
+    const double a=dx2*0.5/(dy2+dx2);
+    const double b=dy2*0.5/(dy2+dx2);
+    const double c=0.5/(dx2+dy2);
+
+    //
+    
     
     break;
   }
