@@ -3,6 +3,7 @@
 #include <utility>
 #include <memory>
 #include <fstream>
+#include <omp.h>
 template <typename T=double,typename index_type=unsigned int>
 
 class Grid {
@@ -75,9 +76,10 @@ int main() {
   Grid<double,unsigned short int> T{ny+1,nx+1};
   Grid<double,unsigned short int> T1{ny+1,nx+1};
   std::size_t iteration=0;
-  while(iteration < 20) {
+  while(iteration < 14000) {
+
     //componente x velocità
-    for( std::size_t j=1; j < ny; ++j) //new row
+    for( std::size_t j=1; j < ny; ++j)  //new row 
       for( std::size_t i=1; i < nx-1; ++i) { //next col
 	const double vt=0.5*(vy(j-1,i)+vy(j-1,i+1));
 	const double vb=0.5*(vy(j,i)+vy(j,i+1));
@@ -85,13 +87,15 @@ int main() {
 	const double ub=0.5*(vx(j+1,i)+vx(j,i));
 	const double ur=0.5*(vx(j,i)+vx(j,i+1));
 	const double ul=0.5*(vx(j,i)+vx(j,i-1));
-  
+      
 	const double a=-(ur*ur-ul*ul)*i_dx-(ub*vb-ut*vt)*i_dy; //convettivo
 	const double b=(vx(j,i+1)-2*vx(j,i)+vx(j,i-1))*i_dx2; //diffusivo 1	// !b=(vy(j,i+1)-2*vy(j,i)+vy(j,i)-1)*i_dx2; !----ERRORE--------ERRORE--------ERRORE--------ERRORE--------ERRORE----
 	const double c=(vx(j+1,i)-2*vx(j,i)+vx(j-1,i))*i_dy2; //diffusivo 2
 	const double AA=-a+sqrt(i_gr)*(b+c);
 	vx1(j,i)=vx(j,i)+dt*(AA-(p(j,i+1)-p(j,i))*i_dx); //velocita vx al passo n+1    
-      }
+      } //innermost for
+
+
     
     //componente y velocità
     for( std::size_t j=1; j < ny - 1; ++j) //new row
@@ -108,7 +112,7 @@ int main() {
 	const double temp=-(T1(j+1,i)+T1(j,i))*0.5; //termine galleggiamento
 	const double BB=-a-temp+sqrt(i_gr)*(b+c); //approssimo gr>>1 gr/re^2
 	vy1(j,i)=vy(j,i)+dt*(BB-(p(j+1,i)-p(j,i))*i_dy); //velocita vy al passo n+1
-    }
+      } //innermost for
 
     //condizioni al contorno vx
     //parete left right impermeabilità
@@ -119,7 +123,7 @@ int main() {
     
     //parete top e bottom noslip
     for(std::size_t i=0; i < nx ; ++i) {
-      vx1(0,i)=2*0-vx1(1,i);
+      vx1(0,i)=2*1-vx1(1,i);
       vx1(ny,i)=2*0-vx1(ny-1,i);
     }
     
@@ -137,6 +141,7 @@ int main() {
     }
 
     //calcolo la divergenza, sarà source di poisson 
+
     for(std::size_t j=1; j< ny;++j)
       for(std::size_t i=1; i< nx;++i)
 	div(j,i)=(+(vx1(j,i)-vx1(j,i-1))*i_dx+(vy1(j,i)-vy1(j-1,i))*i_dy)*dx2*dy2/dt;
@@ -148,7 +153,7 @@ int main() {
 
     //start poisson solver, now
     std::size_t it=0;
-    while(it<200) {
+    while(it<500) {
       it++;
       p2.swap(p1);
 
@@ -206,7 +211,7 @@ int main() {
     //condizioni al contorno temperatura
     for (std::size_t i=1;i<ny+1;++i) {
       T1(i,0)=2*0-T1(i,1); //parete sx fredda
-      T1(i,nx)=2*1-T1(i,nx-1); //parete dx sorgente calda
+      T1(i,nx)=2*0-T1(i,nx-1); //parete dx sorgente calda
     }
     for (std::size_t i=1;i<nx+1;++i) {
       T1(0,i)=T1(1,i); //parete top adiabatica
@@ -232,7 +237,10 @@ int main() {
       vys(j,i)=0.5*(vy1(j,i+1)+vy1(j+1,i+1));
       vxs(j,i)=0.5*(vx1(j+1,i+1)+vx1(j+1,i));
     }
-  
+
+
+
+  //////////////////////////ALTAMENTE SPERIMENTALE E SCHIFOSO///////////////////////////////
   std::ofstream vx_file;
   vx_file.open("vex.bin", std::ios::binary | std::ios::out);
   vx_file.write((const char*)&vx(0,0), sizeof(double)*nx*ny);
@@ -247,5 +255,6 @@ int main() {
   temp_file.open("temp.bin", std::ios::binary | std::ios::out);
   temp_file.write((const char*)&T(0,0), sizeof(double)*nx*ny);
   temp_file.close();
+  //////////////////////////################################///////////////////////////////
 
 }
