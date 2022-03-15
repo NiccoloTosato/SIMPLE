@@ -101,21 +101,25 @@ int main() {
     //condizioni al contorno vx
     //impermeabilità
     for(std::size_t i=1; i<ny; ++i) {
-      vx1(2:ny+1,1)=0;
-      vx1(2:ny+1,nx+1)=0;
+      vx1(i, 0)=0;
+      vx1(i, nx)=0;
     }
     
     //parete top e bottom noslip
-    vx1(1,1:nx+1)=2*0-vx1(2,1:nx+1);
-    vx1(ny+2,1:nx+1)=-vx1(ny+1,1:nx+1);
+    for(std::size_t i=0; i < nx +1; ++i) {
+      vx1(0,i)=2*0-vx1(1,i);
+      vx1(ny+1,i)=2*0-vx1(ny+1,i);
+    }
 
-    //condizioni al contorno vy
-    //parete left right noslip
-    vy1(1:ny+1,1)=-vy1(1:ny+1,2);
-    vy1(1:ny+1,nx+2)=-vy1(1:ny+1,nx+1);
-    //parete top e bottom impermiabilità
-    vy1(1,1:nx+2)=0;
-    vy1(ny+1,1:nx+2)=0;
+
+
+    // //condizioni al contorno vy
+    // //parete left right noslip
+    // vy1(1:ny+1,1)=-vy1(1:ny+1,2);
+    // vy1(1:ny+1,nx+2)=-vy1(1:ny+1,nx+1);
+    // //parete top e bottom impermiabilità
+    // vy1(1,1:nx+2)=0;
+    // vy1(ny+1,1:nx+2)=0;
     
     break;
   }
