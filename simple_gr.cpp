@@ -4,8 +4,8 @@
 #include <memory>
 #include <fstream>
 #include <omp.h>
-template <typename T=double,typename index_type=unsigned int>
 
+template <typename T=double,typename index_type=unsigned int>
 class Grid {
 private:
 
@@ -89,7 +89,7 @@ int main() {
 	const double ul=0.5*(vx(j,i)+vx(j,i-1));
       
 	const double a=-(ur*ur-ul*ul)*i_dx-(ub*vb-ut*vt)*i_dy; //convettivo
-	const double b=(vx(j,i+1)-2*vx(j,i)+vx(j,i-1))*i_dx2; //diffusivo 1	// !b=(vy(j,i+1)-2*vy(j,i)+vy(j,i)-1)*i_dx2; !----ERRORE--------ERRORE--------ERRORE--------ERRORE--------ERRORE----
+	const double b=(vx(j,i+1)-2*vx(j,i)+vx(j,i-1))*i_dx2; //diffusivo 1
 	const double c=(vx(j+1,i)-2*vx(j,i)+vx(j-1,i))*i_dy2; //diffusivo 2
 	const double AA=-a+sqrt(i_gr)*(b+c);
 	vx1(j,i)=vx(j,i)+dt*(AA-(p(j,i+1)-p(j,i))*i_dx); //velocita vx al passo n+1    
@@ -106,6 +106,7 @@ int main() {
 	const double vl=0.5*(vy(j,i-1)+vy(j,i));
 	const double vt=0.5*(vy(j-1,i)+vy(j,i));
 	const double vb=0.5*(vy(j+1,i)+vy(j,i));
+
 	const double a=-(vb*vb-vt*vt)*i_dy-(vr*ur-vl*ul)*i_dx; //convettivo
 	const double b=(vy(j,i+1)-2*vy(j,i)+vy(j,i-1))*i_dx2; //diffusivo 1
 	const double c=(vy(j+1,i)-2*vy(j,i)+vy(j-1,i))*i_dy2; //diffusivo 2
