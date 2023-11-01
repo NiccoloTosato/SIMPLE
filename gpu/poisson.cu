@@ -18,13 +18,13 @@ __global__ void poisson(double* p, double* p1, double* div, int nx, int ny,doubl
      p1[ncols*(idx_y)+idx_x]=al*rel+(1-rel)*p[ncols*(idx_y)+idx_x];
    }
    //forziamo le condizioni al contorno                                                                                                                                                   
-   if (idx_x==0) 
+   if ((idx_x==0) && (idx_y < ny+1)) 
      p1[ncols*(idx_y)+0]=p1[ncols*(idx_y)+1]; //parete sx
-   if(idx_x==(nx+1))	
+   if(idx_x==(nx+1) && (idx_y < ny+1))	
      p1[ncols*(idx_y)+nx+1]=p1[ncols*(idx_y)+nx]; //parete dx
-   if(idx_y==0)
+   if(idx_y==0 && (idx_x < nx+1))
      p1[ncols*(0)+idx_x]=p1[ncols*(1)+idx_x]; //parete top
-   if(idx_y==(nx+1))
+   if(idx_y==(nx+1) && (idx_x < nx+1))
      p1[ncols*(ny+1)+idx_x]=p1[ncols*(ny)+idx_x] ; //parete bottom
 
    //condizioni contorno agli spigoli
@@ -44,7 +44,7 @@ void poisson_wrapper(double* p, double* p1, double* div, int nx, int ny,double a
     it++;
      
 
-    poisson<<<dim3((nx+2),ny+2,1),dim3(1,1,1)>>>(p, p1,div, nx, ny, a,b,c);
+    poisson<<<dim3(ceil((nx+2)/16.0),ceil((nx+2)/16.0),1),dim3(16,16,1)>>>(p, p1,div, nx, ny, a,b,c);
     gpuErrchk( cudaPeekAtLastError() );
     double *tmp;
     tmp=p;
