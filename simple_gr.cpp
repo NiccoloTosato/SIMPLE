@@ -204,7 +204,7 @@ int main(int argc, char* argv[]) {
   auto start_time = std::chrono::steady_clock::now();
   while(iteration < cfg.max_iterations) {
     std::cout<<"\rIter: "<<iteration<<std::flush;
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, 8)
     //componente x velocità
     for( std::size_t j=1; j < ny; ++j)  //new row 
       for( std::size_t i=1; i < nx-1; ++i) { //next col
@@ -226,7 +226,7 @@ int main(int argc, char* argv[]) {
 
     
     //componente y velocità
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, 8)
     for( std::size_t j=1; j < ny - 1; ++j) //new row
       for( std::size_t i=1; i < nx; ++i) { //next col
 	const double ur=0.5*(vx(j,i)+vx(j+1,i));
@@ -270,7 +270,7 @@ int main(int argc, char* argv[]) {
       vy1(ny,i)=0;
     }
 
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, 8)
     //calcolo la divergenza, sarà source di poisson 
     for(std::size_t j=1; j< ny;++j)
       for(std::size_t i=1; i< nx;++i)
@@ -287,7 +287,7 @@ int main(int argc, char* argv[]) {
       it++;
       p2.swap(p1);
 
-      #pragma omp parallel for
+      #pragma omp parallel for schedule(static, 8)
       //laplace operator
       for (std::size_t j=1;j<ny;++j)
 	for (std::size_t i=1;i<ny;++i) {
@@ -316,18 +316,18 @@ int main(int argc, char* argv[]) {
       
     }
 
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, 8)
     //correggere velocita x
     for(std::size_t j=1;j<ny;++j)
       for(std::size_t i=1;i<nx-1;++i) 
 	vx1(j,i)=vx1(j,i)-(p1(j,i+1)-p1(j,i))*i_dx*dt;
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, 8)
     //correggere velocita y
     for(std::size_t j=1;j<ny-1;++j)
       for(std::size_t i=1;i<nx  ;++i) 
 	vy1(j,i)=vy1(j,i)-(p1(j+1,i)-p1(j,i))*i_dy*dt;
 
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, 8)
     for(std::size_t j=1;j<ny+1;++j)
       for(std::size_t i=1;i<nx+1;++i) {
 	
@@ -384,7 +384,7 @@ int main(int argc, char* argv[]) {
 
   Grid<double,unsigned int> vxs{ny, nx};
   Grid<double,unsigned int> vys{ny, nx};
-  #pragma omp parallel for
+  #pragma omp parallel for schedule(static, 8)
   for(std::size_t j=0;j<ny;++j)
     for(std::size_t i=0;i<nx;++i) {
       vys(j,i)=0.5*(vy1(j,i+1)+vy1(j+1,i+1));
