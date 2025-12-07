@@ -55,35 +55,27 @@ plt.grid(True, alpha=0.3, linestyle='--')
 plt.axis('equal')
 plt.tight_layout()
 
-# Figure 2: Temperature contours
+# Figure 2: Temperature with heat map + isolines
 plt.figure(2, figsize=(10, 8))
 # Remove ghost cells for temperature
 temp_interior = temp[1:-1, 1:-1]
-contours = plt.contour(X, Y, temp_interior, 30, cmap='RdBu_r')
-plt.clabel(contours, inline=True, fontsize=8, fmt='%.3f')
-plt.colorbar(contours, label='Temperature')
-plt.xlabel('x', fontsize=12)
-plt.ylabel('y', fontsize=12)
-plt.title(f'Temperature Field - Contour Plot (Gr={gr:.0f}, Pr={pr:.1f})', 
-          fontsize=14, fontweight='bold')
-plt.grid(True, alpha=0.3, linestyle='--')
-plt.axis('equal')
-plt.tight_layout()
 
-# Figure 3: Combined plot with temperature and velocity
-plt.figure(3, figsize=(12, 8))
-plt.contourf(X, Y, temp_interior, 50, cmap='RdBu_r', alpha=0.7)
-plt.colorbar(label='Temperature')
-skip = max(1, nx // 20)  # Adjust vector density based on grid size
-plt.quiver(X[::skip, ::skip], Y[::skip, ::skip], 
-           vex[::skip, ::skip], vey[::skip, ::skip],
-           scale=None, alpha=0.8, width=0.003)
+# Heat map with plasma colormap (better for scientific visualization)
+heat_map = plt.contourf(X, Y, temp_interior, 100, cmap='plasma', alpha=0.95)
+cbar = plt.colorbar(heat_map, label='Temperature', pad=0.02)
+cbar.ax.tick_params(labelsize=10)
+
+# Overlay isolines (contour lines)
+contour_lines = plt.contour(X, Y, temp_interior, 15, colors='black', linewidths=0.8, alpha=0.6)
+plt.clabel(contour_lines, inline=True, fontsize=9, fmt='%.3f')
+
 plt.xlabel('x', fontsize=12)
 plt.ylabel('y', fontsize=12)
-plt.title(f'Temperature Field with Velocity Vectors (Gr={gr:.0f}, Pr={pr:.1f})', 
+plt.title(f'Temperature Field - Heat Map with Isolines (Gr={gr:.0f}, Pr={pr:.1f})', 
           fontsize=14, fontweight='bold')
-plt.grid(True, alpha=0.3, linestyle='--', color='white')
 plt.axis('equal')
+plt.xlim(0, lx)
+plt.ylim(0, ly)
 plt.tight_layout()
 
 plt.show()
