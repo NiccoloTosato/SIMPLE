@@ -1,0 +1,26 @@
+{
+  "grid": {
+    "nx": 128,
+    "ny": 128,
+    "lx": 1.0,
+    "ly": 1.0
+  },
+  "time": {
+    "dt": 0.0001,
+    "max_iterations": 5000
+  },
+  "physical": {
+    "prandtl_number": 1.0,
+    "grashof_number": 8000.0
+  },
+  "solver": {
+    "relaxation_factor": 1.05,
+    "pressure_tolerance": 1e-11,
+    "convergence_tolerance": 1e-11,
+    "poisson_max_iterations": 3000
+  },
+  "boundary_conditions": {
+    "temperature_left": 1.0,
+    "temperature_right": 0.0
+  }
+}
