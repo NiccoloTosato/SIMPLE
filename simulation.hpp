@@ -107,7 +107,7 @@ template <typename T, typename index_type>
 void init_grids(
     VelocityField<T, index_type>& velocity,
     PressureField<T, index_type>& pressure_field,
-    const Grid<T, index_type>& T1,
+    Grid<T, index_type>& T1,
     const SimulationParams& params)
 {
   int me=omp_get_thread_num();
