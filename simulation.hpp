@@ -16,7 +16,7 @@ private:
   
 public:
   Grid(const index_type rows, const index_type cols) 
-    : data{new T[rows * cols]()}, nrows{rows}, ncols{cols} {}
+    : data{new T[rows * cols]}, nrows{rows}, ncols{cols} {}
 
   T& operator()(index_type row, index_type col) {
     return data[row * ncols + col];
@@ -101,6 +101,38 @@ struct SimulationParams {
       dt(cfg.dt) {}
 };
 
+
+// Update y component of velocity
+template <typename T, typename index_type>
+void init_grids(
+    VelocityField<T, index_type>& velocity,
+    PressureField<T, index_type>& pressure_field,
+    const Grid<T, index_type>& T1,
+    const SimulationParams& params)
+{
+  int me=omp_get_thread_num();
+  int num_threads=omp_get_num_threads();
+  int rows_per_thread=params.ny/num_threads;
+  int reminder=params.ny%num_threads;
+  int start_row=me*rows_per_thread+std::min(me,reminder);
+  int end_row=start_row+rows_per_thread+((me<params.ny%num_threads)?1:0);
+
+  for (std::size_t j = start_row; j <end_row; ++j)
+    for (std::size_t i = 1; i < params.nx; ++i)
+    {
+      velocity.y(j, i)=0.0;
+      velocity.y1(j, i)=0.0;
+
+      velocity.x(j, i)=0.0;
+      velocity.x1(j, i)=0.0;
+      pressure_field.pressure(j,i)=0.0;
+      pressure_field.correction(j,i)=0.0;
+      pressure_field.correction_old(j,i)=0.0;
+
+      T1(j,i)=0.0;
+    }
+}
+
 // Update x component of velocity
 template <typename T, typename index_type>
 void update_velocity_x(
@@ -108,8 +140,15 @@ void update_velocity_x(
     PressureField<T, index_type>& pressure_field,
     const SimulationParams& params)
 {
-  #pragma omp parallel for schedule(static, 8)
-  for (std::size_t j = 1; j < params.ny; ++j)
+  int me=omp_get_thread_num();
+  int num_threads=omp_get_num_threads();
+  int rows_per_thread=params.ny/num_threads;
+  int reminder=params.ny%num_threads;
+  int start_row=me*rows_per_thread+std::min(me,reminder);
+  int end_row=start_row+rows_per_thread+((me<params.ny%num_threads)?1:0);
+  if(me==0) start_row=1;
+  
+  for (std::size_t j = start_row; j < end_row; ++j)
     for (std::size_t i = 1; i < params.nx - 1; ++i)
     {
       const double vt = 0.5 * (velocity.y(j - 1, i) + velocity.y(j - 1, i + 1));
@@ -136,8 +175,16 @@ void update_velocity_y(
     const Grid<T, index_type>& T1,
     const SimulationParams& params)
 {
-  #pragma omp parallel for schedule(static, 8)
-  for (std::size_t j = 1; j < params.ny - 1; ++j)
+  int me=omp_get_thread_num();
+  int num_threads=omp_get_num_threads();
+  int rows_per_thread=params.ny/num_threads;
+  int reminder=params.ny%num_threads;
+  int start_row=me*rows_per_thread+std::min(me,reminder);
+  int end_row=start_row+rows_per_thread+((me<params.ny%num_threads)?1:0);
+  if(me==0) start_row=1;
+  if(me==(num_threads-1)) end_row=end_row-1;
+
+  for (std::size_t j = start_row; j <end_row; ++j)
     for (std::size_t i = 1; i < params.nx; ++i)
     {
       const double ur = 0.5 * (velocity.x(j, i) + velocity.x(j + 1, i));
@@ -163,8 +210,15 @@ void calculate_divergence(
     Grid<T, index_type>& div,
     const SimulationParams& params)
 {
-  #pragma omp parallel for schedule(static, 8)
-  for (std::size_t j = 1; j < params.ny; ++j)
+  int me=omp_get_thread_num();
+  int num_threads=omp_get_num_threads();
+  int rows_per_thread=params.ny/num_threads;
+  int reminder=params.ny%num_threads;
+  int start_row=me*rows_per_thread+std::min(me,reminder);
+  int end_row=start_row+rows_per_thread+((me<params.ny%num_threads)?1:0);
+  if(me==0) start_row=1;
+
+  for (std::size_t j = start_row; j < end_row; ++j)
     for (std::size_t i = 1; i < params.nx; ++i)
       div(j, i) = (+(velocity.x1(j, i) - velocity.x1(j, i - 1)) * params.i_dx + 
                    (velocity.y1(j, i) - velocity.y1(j - 1, i)) * params.i_dy) * 
@@ -182,9 +236,15 @@ void apply_laplace_operator(
   const double a = params.dx2 * 0.5 / (params.dy2 + params.dx2);
   const double b = params.dy2 * 0.5 / (params.dy2 + params.dx2);
   const double c = 0.5 / (params.dx2 + params.dy2);
-  
-  #pragma omp parallel for schedule(static, 8)
-  for (std::size_t j = 1; j < params.ny; ++j)
+  int me=omp_get_thread_num();
+  int num_threads=omp_get_num_threads();
+  int rows_per_thread=params.ny/num_threads;
+  int reminder=params.ny%num_threads;
+  int start_row=me*rows_per_thread+std::min(me,reminder);
+  int end_row=start_row+rows_per_thread+((me<params.ny%num_threads)?1:0);
+  if(me==0) start_row=1;
+
+  for (std::size_t j = start_row; j < end_row; ++j)
     for (std::size_t i = 1; i < params.nx; ++i)
     {
       double al = a * (pressure_field.correction(j + 1, i) + pressure_field.correction(j - 1, i)) + 

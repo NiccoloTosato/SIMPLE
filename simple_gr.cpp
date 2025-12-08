@@ -69,15 +69,23 @@ int main(int argc, char *argv[])
 
 
   std::cout << "Fine init\n";
+  std::size_t iteration_final = 0;
   std::size_t iteration = 0;
+
+  #pragma omp parallel firstprivate(iteration)
+  {
   auto start_time = std::chrono::steady_clock::now();
   while (iteration < cfg.max_iterations)
   {
-    std::cout << "\rIter: " << iteration << std::flush;
-    
     // Update velocity components using new functions
     update_velocity_x(velocity, pressure_field, params);
     update_velocity_y(velocity, pressure_field, T1, params);
+    #pragma omp barrier
+    
+    #pragma omp single 
+    {
+    std::cout << "\rIter: " << iteration << std::flush;
+    
 
     // condizioni al contorno vx
     // parete left right impermeabilità
@@ -108,20 +116,24 @@ int main(int argc, char *argv[])
       velocity.y1(0, i) = 0;
       velocity.y1(ny, i) = 0;
     }
+  }// end single
 
     // calcolo la divergenza, sarà source di poisson
     calculate_divergence(velocity, div, params);
-
+    #pragma omp barrier
     // start poisson solver, now
     std::size_t it = 0;
     while (it < cfg.poisson_max_iterations)
     {
       it++;
+      #pragma omp single
+      {
       pressure_field.swap();
-
+      }
       // laplace operator
       apply_laplace_operator(pressure_field, div, params, rel);
-
+      #pragma omp single
+      {
       // forziamo le condizioni al contorno
       for (std::size_t i = 0; i < ny + 1; ++i)
       {
@@ -140,23 +152,23 @@ int main(int argc, char *argv[])
       pressure_field.correction(0, nx + 1) = pressure_field.correction(1, nx);
       pressure_field.correction(ny + 1, nx + 1) = pressure_field.correction(ny, nx);
       pressure_field.correction(ny + 1, 0) = pressure_field.correction(ny, 1);
-
+      }
       // TO DO: CHECK CONVERGENCE
     }
 
-#pragma omp parallel for schedule(static, 8)
+    #pragma omp single 
+    {
+
     // correggere velocita x
     for (std::size_t j = 1; j < ny; ++j)
       for (std::size_t i = 1; i < nx - 1; ++i)
         velocity.x1(j, i) = velocity.x1(j, i) - (pressure_field.correction(j, i + 1) - pressure_field.correction(j, i)) * i_dx * dt;
 
-#pragma omp parallel for schedule(static, 8)
     // correggere velocita y
     for (std::size_t j = 1; j < ny - 1; ++j)
       for (std::size_t i = 1; i < nx; ++i)
         velocity.y1(j, i) = velocity.y1(j, i) - (pressure_field.correction(j + 1, i) - pressure_field.correction(j, i)) * i_dy * dt;
 
-#pragma omp parallel for schedule(static, 8)
     for (std::size_t j = 1; j < ny + 1; ++j)
       for (std::size_t i = 1; i < nx + 1; ++i)
       {
@@ -191,7 +203,6 @@ int main(int argc, char *argv[])
         pressure_field.correction(j, i) = 0;
       }
 
-    iteration++;
 
     // Calculate and display progress
     auto current_time = std::chrono::steady_clock::now();
@@ -210,11 +221,16 @@ int main(int argc, char *argv[])
               << " ETA: " << std::setfill('0') << std::setw(2) << eta_hours << ":"
               << std::setw(2) << eta_minutes << ":" << std::setw(2) << eta_secs
               << "    " << std::flush;
-  }
+    
+  } //end single
+  iteration++;
+    } //end while
+    #pragma omp single
+    iteration_final = iteration;
+  } //end parallel
 
 Grid<double, unsigned int> vxs{ny, nx};
 Grid<double, unsigned int> vys{ny, nx};
-#pragma omp parallel for schedule(static, 8)
   for (std::size_t j = 0; j < ny; ++j)
     for (std::size_t i = 0; i < nx; ++i)
     {
@@ -284,9 +300,8 @@ Grid<double, unsigned int> vys{ny, nx};
   H5Awrite(attr_dt, H5T_NATIVE_DOUBLE, &dt);
   H5Aclose(attr_dt);
 
-  std::size_t iter = iteration;
   hid_t attr_iter = H5Acreate2(file_id, "iterations", H5T_NATIVE_ULLONG, attr_space, H5P_DEFAULT, H5P_DEFAULT);
-  H5Awrite(attr_iter, H5T_NATIVE_ULLONG, &iter);
+  H5Awrite(attr_iter, H5T_NATIVE_ULLONG, &iteration_final);
   H5Aclose(attr_iter);
 
   H5Sclose(attr_space);
