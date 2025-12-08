@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
   Grid<double, unsigned int> T{ny + 2, nx + 2};
   Grid<double, unsigned int> T1{ny + 2, nx + 2};
 
-
+  init_grids(velocity, pressure_field, T1, params);
   std::cout << "Fine init\n";
   std::size_t iteration_final = 0;
   std::size_t iteration = 0;
