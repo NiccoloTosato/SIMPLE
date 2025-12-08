@@ -215,7 +215,7 @@ int main(int argc, char *argv[])
     int eta_hours = static_cast<int>(eta_seconds / 3600);
     int eta_minutes = static_cast<int>((eta_seconds - eta_hours * 3600) / 60);
     int eta_secs = static_cast<int>(eta_seconds) % 60;
-
+    if(iteration % 25 == 0)
     std::cout << "\rIter: " << iteration << "/" << cfg.max_iterations
               << " [" << std::fixed << std::setprecision(2) << iter_per_sec << " it/s]"
               << " ETA: " << std::setfill('0') << std::setw(2) << eta_hours << ":"
