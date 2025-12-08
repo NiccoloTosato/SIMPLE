@@ -84,7 +84,6 @@ int main(int argc, char *argv[])
     
     #pragma omp single 
     {
-    std::cout << "\rIter: " << iteration << std::flush;
     
 
     // condizioni al contorno vx
